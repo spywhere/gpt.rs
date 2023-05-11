@@ -18,8 +18,8 @@ fn validate_api_key(opts: &GptOptions) -> Result<(), Exit> {
 }
 
 fn validate_context(opts: &GptOptions) -> Result<(), Exit> {
-  match (atty::is(atty::Stream::Stdout), &opts.flags.context) {
-    (true, Some(_)) => Err(Exit { exit_code: 1, message: "context cannot be used in the pipe" }),
+  match (atty::is(atty::Stream::Stdin), &opts.flags.context) {
+    (false, Some(_)) => Err(Exit { exit_code: 1, message: "context cannot be used in the pipe" }),
     (_, _) => Ok(())
   }
 }

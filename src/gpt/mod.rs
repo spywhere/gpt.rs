@@ -1,5 +1,6 @@
 mod validation;
 
+use atty;
 use crate::cli::options::GptOptions;
 use crate::cli::Exit;
 
@@ -22,6 +23,8 @@ pub fn gpt(opts: &GptOptions) -> Result<(), Exit> {
   println!("Models: {}", opts.flags.show_models);
 
   println!("Produce Command: {}", opts.helpers.produce_command);
+
+  println!("Is TTY: {}", atty::is(atty::Stream::Stdin));
 
   Ok(())
 }
