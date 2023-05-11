@@ -1,0 +1,17 @@
+[package]
+name = "gpt-cli"
+version = "0.1.0"
+edition = "2021"
+default-run = "gpt"
+
+[lib]
+name = "gpt"
+
+[[bin]]
+name = "gpt"
+
+[[bin]]
+name = "prepare-commit-msg"
+
+[dependencies]
+clap = { version = "4.2.7", features = ["cargo", "derive", "env"] }
