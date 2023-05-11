@@ -1,9 +1,9 @@
 mod validation;
 
 use crate::cli::options::GptOptions;
-use crate::cli::Error;
+use crate::cli::Exit;
 
-pub fn gpt(opts: &GptOptions) -> Result<(), Error> {
+pub fn gpt(opts: &GptOptions) -> Result<(), Exit> {
   validation::validate(opts)?;
 
   if let Some(temp) = opts.flags.temperature {

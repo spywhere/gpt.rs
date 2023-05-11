@@ -13,7 +13,7 @@ pub struct Cli {
   pub command: Commands,
 }
 
-pub struct Error {
+pub struct Exit {
   pub exit_code: i32,
   pub message: &'static str,
 }

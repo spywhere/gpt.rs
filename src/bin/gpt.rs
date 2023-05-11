@@ -10,9 +10,12 @@ fn main() {
   };
 
   match result {
-    Err(error) => {
-      println!("ERROR: {}", error.message);
-      std::process::exit(error.exit_code)
+    Err(exit) => {
+      match exit.exit_code {
+        0 => println!("{}", exit.message),
+        _ => println!("ERROR: {}", exit.message)
+      }
+      std::process::exit(exit.exit_code)
     },
     _ => {},
   }
