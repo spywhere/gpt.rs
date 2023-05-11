@@ -14,4 +14,5 @@ name = "gpt"
 name = "prepare-commit-msg"
 
 [dependencies]
+atty = "0.2.14"
 clap = { version = "4.2.7", features = ["cargo", "derive", "env"] }
