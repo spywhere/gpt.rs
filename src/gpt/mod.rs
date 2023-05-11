@@ -1,6 +1,11 @@
-use crate::cli::options::GptOptions;
+mod validation;
 
-pub fn gpt(opts: &GptOptions) {
+use crate::cli::options::GptOptions;
+use crate::cli::Error;
+
+pub fn gpt(opts: &GptOptions) -> Result<(), Error> {
+  validation::validate(opts)?;
+
   if let Some(temp) = opts.flags.temperature {
     println!("Temperature: {}", temp);
   }
@@ -17,4 +22,6 @@ pub fn gpt(opts: &GptOptions) {
   println!("Models: {}", opts.flags.show_models);
 
   println!("Produce Command: {}", opts.helpers.produce_command);
+
+  Ok(())
 }

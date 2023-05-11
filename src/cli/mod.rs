@@ -12,3 +12,8 @@ pub struct Cli {
   #[command(subcommand)]
   pub command: Commands,
 }
+
+pub struct Error {
+  pub exit_code: i32,
+  pub message: &'static str,
+}
