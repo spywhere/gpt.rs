@@ -15,5 +15,5 @@ pub struct Cli {
 
 pub struct Exit {
   pub exit_code: i32,
-  pub message: &'static str,
+  pub message: String,
 }
