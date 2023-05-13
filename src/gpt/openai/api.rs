@@ -22,7 +22,8 @@ pub enum ApiErrorType {
   Body,
   Decode,
   Builder,
-  Unknown
+  Unknown,
+  DryDebug
 }
 
 pub struct ApiError {
@@ -45,7 +46,13 @@ fn to_api_error(error: reqwest::Error) -> ApiError {
 
 fn get<T: DeserializeOwned>(opts: &ApiOptions, path: impl Into<String>) -> Result<T, ApiError> {
   let path = path.into().clone();
-  println!("Req[{}{}]", opts.api_host, path);
+
+  if opts.debug {
+    println!("Req[{}{}]", opts.api_host, path);
+    if opts.dry {
+      return Err(ApiError { kind: ApiErrorType::DryDebug });
+    }
+  }
 
   let authorization = reqwest::header::HeaderValue::from_str(format!("Bearer {}", opts.api_key).as_str()).map_err(|_| ApiError { kind: ApiErrorType::Request })?;
   let client = reqwest::blocking::Client::new();
@@ -59,7 +66,17 @@ fn get<T: DeserializeOwned>(opts: &ApiOptions, path: impl Into<String>) -> Resul
 
 fn post<S: Serialize, T: DeserializeOwned>(opts: &ApiOptions, path: impl Into<String>, json: &S) -> Result<T, ApiError> {
   let path = path.into().clone();
-  println!("Req[{}{}]", opts.api_host, path);
+
+  if opts.debug {
+    if let Ok(json) = serde_json::to_string(&json) {
+      println!("Req[{}{}] {}", opts.api_host, path, json);
+    } else {
+      println!("Req[{}{}] Failed to serialize body", opts.api_host, path);
+    }
+    if opts.dry {
+      return Err(ApiError { kind: ApiErrorType::DryDebug });
+    }
+  }
 
   let authorization = reqwest::header::HeaderValue::from_str(format!("Bearer {}", opts.api_key).as_str()).map_err(|_| ApiError { kind: ApiErrorType::Request })?;
   let client = reqwest::blocking::Client::new();
@@ -76,6 +93,6 @@ pub(super) fn models(opts: &ApiOptions) -> Result<model::Models, ApiError> {
   get(opts, "/models")
 }
 
-pub(super) fn chat_completions(opts: &ApiOptions, request: &model::ChatCompletions) -> Result<model::ChatCompletions, ApiError> {
+pub(super) fn chat_completions(opts: &ApiOptions, request: &model::ChatCompletions) -> Result<model::ChatCompletionsResponse, ApiError> {
   post(opts, "/chat/completions", &request)
 }

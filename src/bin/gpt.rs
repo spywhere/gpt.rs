@@ -11,9 +11,11 @@ fn main() {
 
   match result {
     Err(exit) => {
-      match exit.exit_code {
-        0 => println!("{}", exit.message),
-        _ => println!("ERROR: {}", exit.message)
+      if let Some(message) = exit.message {
+        match exit.exit_code {
+          0 => println!("{}", message),
+          _ => println!("ERROR: {}", message)
+        }
       }
       std::process::exit(exit.exit_code)
     },

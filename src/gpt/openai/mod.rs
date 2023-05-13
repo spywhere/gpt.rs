@@ -1,5 +1,5 @@
 mod api;
-mod model;
+pub mod model;
 
 pub use api::{ ApiError, ApiErrorType };
 
@@ -16,7 +16,7 @@ impl OpenAi {
     api::models(&self.opts)
   }
 
-  pub fn chat_completions(&self, request: &model::ChatCompletions) -> Result<model::ChatCompletions, api::ApiError> {
+  pub fn chat_completions(&self, request: &model::ChatCompletions) -> Result<model::ChatCompletionsResponse, api::ApiError> {
     api::chat_completions(&self.opts, &request)
   }
 }

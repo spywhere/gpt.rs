@@ -13,42 +13,42 @@ pub struct Model {
   pub by: String
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct ChatCompletions {
-  #[serde(skip_deserializing)]
   pub model: String,
-  #[serde(skip_deserializing)]
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub max_tokens: Option<u16>,
-  #[serde(skip_deserializing)]
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub temperature: Option<f32>,
-  #[serde(skip_deserializing)]
   pub messages: Vec<Message>,
+}
 
-  #[serde(skip_serializing)]
+#[derive(Deserialize)]
+pub struct ChatCompletionsResponse {
   pub choices: Vec<Choice>,
-  #[serde(skip_serializing)]
   pub usage: Usage
 }
 
 #[derive(Deserialize)]
 pub struct Choice {
-  message: Message
+  pub message: Message
 }
 
 #[derive(Deserialize)]
 pub struct Usage {
-  prompt_tokens: u16,
-  completion_tokens: u16,
-  total_tokens: u16
+  pub prompt_tokens: u16,
+  pub completion_tokens: u16,
+  pub total_tokens: u16
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Message {
   pub role: Role,
   pub content: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "lowercase")]
 pub enum Role {
   System,
   User,

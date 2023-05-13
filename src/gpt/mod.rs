@@ -1,25 +1,27 @@
-mod validation;
-mod openai;
-
 use atty;
+
 use crate::cli::options::GptOptions;
 use crate::cli::Exit;
+
+mod validation;
+mod openai;
 
 pub fn gpt(opts: &GptOptions) -> Result<(), Exit> {
   if opts.flags.show_models {
     return models(opts)
   }
 
-  validation::validate(opts)?;
+  let gpt_prompt = validation::validate(opts)?;
 
-  prompt(opts)
+  prompt(opts, &gpt_prompt)
 }
 
 fn to_exit(error: openai::ApiError) -> Exit {
   match error.kind {
-    openai::ApiErrorType::Timeout => Exit { exit_code: 1, message: "Request timed out".to_string() },
-    openai::ApiErrorType::Decode => Exit { exit_code: 1, message: "Bad response".to_string() },
-    _ => Exit { exit_code: 1, message: "Request failed".to_string() }
+    openai::ApiErrorType::Timeout => Exit { exit_code: 1, message: Some("Request timed out".to_string()) },
+    openai::ApiErrorType::Decode => Exit { exit_code: 1, message: Some("Bad response".to_string()) },
+    openai::ApiErrorType::DryDebug => Exit { exit_code: 0, message: None },
+    _ => Exit { exit_code: 1, message: Some("Request failed".to_string()) }
   }
 }
 
@@ -41,7 +43,7 @@ pub fn models(opts: &GptOptions) -> Result<(), Exit> {
   Ok(())
 }
 
-pub fn prompt(opts: &GptOptions) -> Result<(), Exit> {
+pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
   if let Some(temp) = opts.flags.temperature {
     println!("Temperature: {}", temp);
   }
@@ -53,7 +55,6 @@ pub fn prompt(opts: &GptOptions) -> Result<(), Exit> {
     println!("Context: {}", context);
   }
   println!("Timeout: {}", opts.flags.timeout);
-  println!("Prompt: {}", opts.prompt.join(" "));
 
   println!("Produce Command: {}", opts.helpers.produce_command);
 
