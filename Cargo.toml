@@ -16,3 +16,5 @@ name = "prepare-commit-msg"
 [dependencies]
 atty = "0.2.14"
 clap = { version = "4.2.7", features = ["cargo", "derive", "env"] }
+reqwest = { version = "0.11.17", features = ["json", "blocking"] }
+serde = { version = "1.0.163", features = ["derive"] }
