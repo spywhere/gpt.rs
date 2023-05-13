@@ -32,7 +32,7 @@ pub struct Envs {
   pub api_key: Option<String>,
 
   /// Host for Open API
-  #[arg(hide_env_values = true, long = "openai-api-host", env = "OPENAI_API_BASE", default_value = "https://api.openapi.com/v1")]
+  #[arg(hide_env_values = true, long = "openai-api-host", env = "OPENAI_API_BASE", default_value = "https://api.openai.com/v1")]
   pub api_host: String,
 }
 
@@ -60,7 +60,7 @@ pub struct Flags {
   pub timeout: u8,
 
   /// List all available models
-  #[arg(long = "models", exclusive = true)]
+  #[arg(long = "models")]
   pub show_models: bool,
 }
 
