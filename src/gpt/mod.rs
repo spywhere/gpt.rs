@@ -1,3 +1,6 @@
+use std::io;
+use std::io::Write;
+use std::path::Path;
 use atty;
 
 use crate::cli::options::GptOptions;
@@ -11,8 +14,15 @@ pub fn gpt(opts: &GptOptions) -> Result<(), Exit> {
     return models(opts)
   }
 
-  let gpt_prompt = validation::validate(opts)?;
+  validation::validate(opts)?;
 
+  let gpt_prompt = if atty::is(atty::Stream::Stdin) {
+    opts.prompt.join("")
+  } else {
+    io::stdin().lines().map(|line| line.unwrap()).collect::<Vec<String>>().join("\n")
+  };
+
+  validation::validate_prompt(opts, &gpt_prompt)?;
   prompt(opts, &gpt_prompt)
 }
 
@@ -60,14 +70,50 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
 
   println!("Is TTY: {}", atty::is(atty::Stream::Stdin));
 
-  println!("Prompt: {}", prompt);
+  println!("Prompt: [{}]", prompt);
 
   let mut messages: Vec<openai::model::Message> = Vec::new();
 
-  messages.push(openai::model::Message {
-    role: openai::model::Role::User,
-    content: prompt.to_string()
-  });
+  if let Some(context) = &opts.flags.context {
+    let mut skip_create = false;
+    if context != "-" {
+      println!("==== Context will be stored in '{}' ====", context);
+
+      if Path::new(context).exists() {
+        println!("Load existing context");
+        skip_create = true;
+      }
+    }
+
+    if !skip_create && prompt != "" {
+      println!("[System] {}", prompt);
+      messages.push(openai::model::Message {
+        role: openai::model::Role::System,
+        content: prompt.to_string()
+      });
+    }
+  }
+
+  if let Some(_) = &opts.flags.context {
+    print!("[User] ");
+    io::stdout().flush().unwrap();
+    let mut line = String::new();
+    if let Ok(_) = io::stdin().read_line(&mut line) {
+      line = line.trim().to_string();
+    }
+    if line == "" {
+      return Err(Exit { exit_code: 0, message: None });
+    }
+    messages.push(openai::model::Message {
+      role: openai::model::Role::User,
+      content: line
+    });
+  } else {
+    messages.push(openai::model::Message {
+      role: openai::model::Role::User,
+      content: prompt.to_string()
+    });
+  }
 
   let request = openai::model::ChatCompletions {
     model: opts.flags.model.clone(),

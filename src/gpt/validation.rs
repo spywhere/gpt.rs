@@ -1,15 +1,13 @@
-use std::io;
 use atty;
 
 use crate::cli::options::GptOptions;
 use crate::cli::Exit;
 
-pub(super) fn validate(opts: &GptOptions) -> Result<String, Exit> {
+pub(super) fn validate(opts: &GptOptions) -> Result<(), Exit> {
   validate_api_key(opts)?;
   validate_context(opts)?;
-  let prompt = validate_prompt(opts)?;
 
-  Ok(prompt)
+  Ok(())
 }
 
 fn validate_api_key(opts: &GptOptions) -> Result<(), Exit> {
@@ -26,15 +24,9 @@ fn validate_context(opts: &GptOptions) -> Result<(), Exit> {
   }
 }
 
-fn validate_prompt(opts: &GptOptions) -> Result<String, Exit> {
-  let prompt = if atty::is(atty::Stream::Stdin) {
-    opts.prompt.join("")
-  } else {
-    io::stdin().lines().map(|line| line.unwrap()).collect::<Vec<String>>().join("\n")
-  };
-
+pub(super) fn validate_prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
   match (&opts.flags.context, prompt.as_str()) {
     (None, "") => Err(Exit { exit_code: 0, message: Some("No prompt given\nUse --help for usage".to_string()) }),
-    (_, _) => Ok(prompt)
+    (_, _) => Ok(())
   }
 }
