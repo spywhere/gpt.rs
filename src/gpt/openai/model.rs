@@ -1,12 +1,12 @@
 use serde::{ Serialize, Deserialize };
 
-#[derive(Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Models {
   #[serde(rename = "data")]
   pub models: Vec<Model>
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Model {
   pub id: String,
   #[serde(rename = "owned_by")]
@@ -23,18 +23,18 @@ pub struct ChatCompletions {
   pub messages: Vec<Message>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct ChatCompletionsResponse {
   pub choices: Vec<Choice>,
   pub usage: Usage
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Choice {
   pub message: Message
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Usage {
   pub prompt_tokens: u16,
   pub completion_tokens: u16,

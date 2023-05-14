@@ -44,7 +44,7 @@ fn to_api_error(error: reqwest::Error) -> ApiError {
   }
 }
 
-fn get<T: DeserializeOwned>(opts: &ApiOptions, path: impl Into<String>) -> Result<T, ApiError> {
+fn get<T: Serialize + DeserializeOwned>(opts: &ApiOptions, path: impl Into<String>) -> Result<T, ApiError> {
   let path = path.into().clone();
 
   if opts.debug {
@@ -56,15 +56,26 @@ fn get<T: DeserializeOwned>(opts: &ApiOptions, path: impl Into<String>) -> Resul
 
   let authorization = reqwest::header::HeaderValue::from_str(format!("Bearer {}", opts.api_key).as_str()).map_err(|_| ApiError { kind: ApiErrorType::Request })?;
   let client = reqwest::blocking::Client::new();
-  client
+  let response = client
     .get(format!("{}{}", opts.api_host, path))
     .timeout(Duration::from_secs(opts.timeout.into()))
     .header(reqwest::header::AUTHORIZATION, authorization)
     .send().map_err(to_api_error)?
-    .json().map_err(to_api_error)
+    .json().map_err(to_api_error)?;
+
+  if opts.debug {
+    if let Ok(response) = serde_json::to_string(&response) {
+      println!("Res[{}{}] {}", opts.api_host, path, response);
+    } else {
+      println!("Res[{}{}] Failed to serialize response", opts.api_host, path);
+      return Err(ApiError { kind: ApiErrorType::Decode });
+    }
+  }
+
+  Ok(response)
 }
 
-fn post<S: Serialize, T: DeserializeOwned>(opts: &ApiOptions, path: impl Into<String>, json: &S) -> Result<T, ApiError> {
+fn post<S: Serialize, T: Serialize + DeserializeOwned>(opts: &ApiOptions, path: impl Into<String>, json: &S) -> Result<T, ApiError> {
   let path = path.into().clone();
 
   if opts.debug {
@@ -72,6 +83,7 @@ fn post<S: Serialize, T: DeserializeOwned>(opts: &ApiOptions, path: impl Into<St
       println!("Req[{}{}] {}", opts.api_host, path, json);
     } else {
       println!("Req[{}{}] Failed to serialize body", opts.api_host, path);
+      return Err(ApiError { kind: ApiErrorType::Request });
     }
     if opts.dry {
       return Err(ApiError { kind: ApiErrorType::DryDebug });
@@ -80,13 +92,24 @@ fn post<S: Serialize, T: DeserializeOwned>(opts: &ApiOptions, path: impl Into<St
 
   let authorization = reqwest::header::HeaderValue::from_str(format!("Bearer {}", opts.api_key).as_str()).map_err(|_| ApiError { kind: ApiErrorType::Request })?;
   let client = reqwest::blocking::Client::new();
-  client
+  let response = client
     .post(format!("{}{}", opts.api_host, path))
     .timeout(Duration::from_secs(opts.timeout.into()))
     .header(reqwest::header::AUTHORIZATION, authorization)
     .json(&json)
     .send().map_err(to_api_error)?
-    .json().map_err(to_api_error)
+    .json().map_err(to_api_error)?;
+
+  if opts.debug {
+    if let Ok(response) = serde_json::to_string(&response) {
+      println!("Res[{}{}] {}", opts.api_host, path, response);
+    } else {
+      println!("Res[{}{}] Failed to serialize response", opts.api_host, path);
+      return Err(ApiError { kind: ApiErrorType::Decode });
+    }
+  }
+
+  Ok(response)
 }
 
 pub(super) fn models(opts: &ApiOptions) -> Result<model::Models, ApiError> {
