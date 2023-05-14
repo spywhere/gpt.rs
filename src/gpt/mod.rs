@@ -10,11 +10,11 @@ mod validation;
 mod openai;
 
 pub fn gpt(opts: &GptOptions) -> Result<(), Exit> {
+  validation::validate(opts)?;
+
   if opts.flags.show_models {
     return models(opts)
   }
-
-  validation::validate(opts)?;
 
   let gpt_prompt = if atty::is(atty::Stream::Stdin) {
     opts.prompt.join("")
