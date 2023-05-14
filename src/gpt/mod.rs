@@ -54,27 +54,11 @@ pub fn models(opts: &GptOptions) -> Result<(), Exit> {
 }
 
 pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
-  if let Some(temp) = opts.flags.temperature {
-    println!("Temperature: {}", temp);
-  }
-  if let Some(token) = opts.flags.max_tokens {
-    println!("Max Tokens: {}", token);
-  }
-  println!("Model: {}", opts.flags.model);
-  if let Some(context) = &opts.flags.context {
-    println!("Context: {}", context);
-  }
-  println!("Timeout: {}", opts.flags.timeout);
-
-  println!("Produce Command: {}", opts.helpers.produce_command);
-
-  println!("Is TTY: {}", atty::is(atty::Stream::Stdin));
-
-  println!("Prompt: [{}]", prompt);
-
   let mut messages: Vec<openai::model::Message> = Vec::new();
+  let mut has_context = false;
 
   if let Some(context) = &opts.flags.context {
+    has_context = true;
     let mut skip_create = false;
     if context != "-" {
       println!("==== Context will be stored in '{}' ====", context);
@@ -94,49 +78,64 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
     }
   }
 
-  if let Some(_) = &opts.flags.context {
-    print!("[User] ");
-    io::stdout().flush().unwrap();
-    let mut line = String::new();
-    if let Ok(_) = io::stdin().read_line(&mut line) {
-      line = line.trim().to_string();
+  loop {
+    if has_context {
+      print!("[User] ");
+      io::stdout().flush().unwrap();
+      let mut line = String::new();
+      if let Ok(_) = io::stdin().read_line(&mut line) {
+        line = line.trim().to_string();
+      }
+      if line == "" {
+        break;
+      }
+      messages.push(openai::model::Message {
+        role: openai::model::Role::User,
+        content: line
+      });
+    } else {
+      messages.push(openai::model::Message {
+        role: openai::model::Role::User,
+        content: prompt.to_string()
+      });
     }
-    if line == "" {
-      return Err(Exit { exit_code: 0, message: None });
+
+    let request = openai::model::ChatCompletions {
+      model: opts.flags.model.clone(),
+      max_tokens: opts.flags.max_tokens,
+      temperature: opts.flags.temperature,
+      messages: messages.clone()
+    };
+
+    let openai = openai::OpenAi::new(
+      opts.envs.api_host.to_string(),
+      opts.envs.api_key.clone().unwrap().to_string(),
+      opts.flags.timeout,
+      opts.debug || opts.debug_dry,
+      opts.debug_dry
+    );
+    let response = openai.chat_completions(&request).map_err(to_exit)?;
+
+    let response: Vec<String> = response.choices
+      .into_iter()
+      .map(|choice| choice.message.content)
+      .collect();
+
+    if let Some(context) = &opts.flags.context {
+      println!("[Assistant] {}", response.join("\n"));
+      messages.push(openai::model::Message {
+        role: openai::model::Role::Assistant,
+        content: response.join("\n")
+      });
+
+      if context != "-" {
+        println!("Stored context to file");
+      }
+    } else {
+      println!("{}", response.join("\n"));
+      break;
     }
-    messages.push(openai::model::Message {
-      role: openai::model::Role::User,
-      content: line
-    });
-  } else {
-    messages.push(openai::model::Message {
-      role: openai::model::Role::User,
-      content: prompt.to_string()
-    });
   }
-
-  let request = openai::model::ChatCompletions {
-    model: opts.flags.model.clone(),
-    max_tokens: opts.flags.max_tokens,
-    temperature: opts.flags.temperature,
-    messages
-  };
-
-  let openai = openai::OpenAi::new(
-    opts.envs.api_host.to_string(),
-    opts.envs.api_key.clone().unwrap().to_string(),
-    opts.flags.timeout,
-    opts.debug || opts.debug_dry,
-    opts.debug_dry
-  );
-  let response = openai.chat_completions(&request).map_err(to_exit)?;
-
-  let messages: Vec<String> = response.choices
-    .into_iter()
-    .map(|choice| choice.message.content)
-    .collect();
-
-  println!("{}", messages.join("\n"));
 
   Ok(())
 }
