@@ -3,6 +3,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::gpt::openai::model;
+use crate::cli::stderr;
 
 pub(super) struct ApiOptions {
   pub(super) api_host: String,
@@ -48,7 +49,7 @@ fn get<T: Serialize + DeserializeOwned>(opts: &ApiOptions, path: impl Into<Strin
   let path = path.into().clone();
 
   if opts.debug {
-    println!("Req[{}{}]", opts.api_host, path);
+    stderr!("Req[{}{}]", opts.api_host, path);
     if opts.dry {
       return Err(ApiError { kind: ApiErrorType::DryDebug });
     }
@@ -65,9 +66,9 @@ fn get<T: Serialize + DeserializeOwned>(opts: &ApiOptions, path: impl Into<Strin
 
   if opts.debug {
     if let Ok(response) = serde_json::to_string(&response) {
-      println!("Res[{}{}] {}", opts.api_host, path, response);
+      stderr!("Res[{}{}] {}", opts.api_host, path, response);
     } else {
-      println!("Res[{}{}] Failed to serialize response", opts.api_host, path);
+      stderr!("Res[{}{}] Failed to serialize response", opts.api_host, path);
       return Err(ApiError { kind: ApiErrorType::Decode });
     }
   }
@@ -80,9 +81,9 @@ fn post<S: Serialize, T: Serialize + DeserializeOwned>(opts: &ApiOptions, path: 
 
   if opts.debug {
     if let Ok(json) = serde_json::to_string(&json) {
-      println!("Req[{}{}] {}", opts.api_host, path, json);
+      stderr!("Req[{}{}] {}", opts.api_host, path, json);
     } else {
-      println!("Req[{}{}] Failed to serialize body", opts.api_host, path);
+      stderr!("Req[{}{}] Failed to serialize body", opts.api_host, path);
       return Err(ApiError { kind: ApiErrorType::Request });
     }
     if opts.dry {
@@ -102,9 +103,9 @@ fn post<S: Serialize, T: Serialize + DeserializeOwned>(opts: &ApiOptions, path: 
 
   if opts.debug {
     if let Ok(response) = serde_json::to_string(&response) {
-      println!("Res[{}{}] {}", opts.api_host, path, response);
+      stderr!("Res[{}{}] {}", opts.api_host, path, response);
     } else {
-      println!("Res[{}{}] Failed to serialize response", opts.api_host, path);
+      stderr!("Res[{}{}] Failed to serialize response", opts.api_host, path);
       return Err(ApiError { kind: ApiErrorType::Decode });
     }
   }

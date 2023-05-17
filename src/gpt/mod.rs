@@ -1,10 +1,10 @@
 use std::io;
-use std::io::Write;
 use std::path::Path;
 use atty;
 
 use crate::cli::options::GptOptions;
 use crate::cli::Exit;
+use crate::cli::{stdout, stdout_inline};
 
 mod validation;
 mod openai;
@@ -54,9 +54,9 @@ pub fn models(opts: &GptOptions) -> Result<(), Exit> {
   );
   let models = openai.models().map_err(to_exit)?;
 
-  println!("Available models:");
+  stdout!("Available models:");
   for model in models.models {
-    println!("  - {}\n    by: {}", model.id, model.by);
+    stdout!("  - {}\n    by: {}", model.id, model.by);
   }
 
   Ok(())
@@ -70,7 +70,7 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
     has_context = true;
     let mut skip_create = false;
     if context != "-" {
-      println!("==== Context will be stored in '{}' ====", context);
+      stdout!("==== Context will be stored in '{}' ====", context);
 
       if Path::new(context).exists() {
         let data = std::fs::read_to_string(context)
@@ -87,9 +87,9 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
 
         for message in &messages {
           match message.role {
-            model::Role::System => println!("[System] {}", message.content),
-            model::Role::Assistant => println!("[Assistant] {}", message.content),
-            model::Role::User => println!("[User] {}", message.content)
+            model::Role::System => stdout!("[System] {}", message.content),
+            model::Role::Assistant => stdout!("[Assistant] {}", message.content),
+            model::Role::User => stdout!("[User] {}", message.content)
           }
         }
         skip_create = true;
@@ -97,7 +97,7 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
     }
 
     if !skip_create && prompt != "" {
-      println!("[System] {}", prompt);
+      stdout!("[System] {}", prompt);
       messages.push(model::Message {
         role: model::Role::System,
         content: prompt.to_string()
@@ -107,8 +107,7 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
 
   loop {
     if has_context {
-      print!("[User] ");
-      io::stdout().flush().unwrap();
+      stdout_inline!("[User] ");
       let mut line = String::new();
       if let Ok(_) = io::stdin().read_line(&mut line) {
         line = line.trim().to_string();
@@ -163,7 +162,7 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
       .collect();
 
     if let Some(context) = &opts.flags.context {
-      println!("[Assistant] {}", response.join("\n"));
+      stdout!("[Assistant] {}", response.join("\n"));
       messages.push(model::Message {
         role: model::Role::Assistant,
         content: response.join("\n")
@@ -177,7 +176,7 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
           })?;
       }
     } else {
-      println!("{}", response.join("\n"));
+      stdout!("{}", response.join("\n"));
       break;
     }
   }
