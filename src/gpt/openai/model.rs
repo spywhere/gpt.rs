@@ -24,9 +24,27 @@ pub struct ChatCompletions {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ChatCompletionsResponse {
+#[serde(untagged)]
+pub enum ChatCompletionsResponse {
+  Ok(ChatCompletionsResponseResult),
+  Error(ChatCompletionsErrorResponseError)
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ChatCompletionsResponseResult {
   pub choices: Vec<Choice>,
-  pub usage: Usage
+  pub usage: Usage,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ChatCompletionsErrorResponseError {
+  pub error: OpenAiError
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct OpenAiError {
+  pub r#type: String,
+  pub message: String
 }
 
 #[derive(Serialize, Deserialize)]

@@ -116,6 +116,20 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
     );
     let response = openai.chat_completions(&request).map_err(to_exit)?;
 
+    let response = match response {
+      openai::model::ChatCompletionsResponse::Ok(response) => response,
+      openai::model::ChatCompletionsResponse::Error(error) => {
+        return Err(Exit {
+          exit_code: 1,
+          message: Some(format!(
+            "[{}] {}",
+            error.error.r#type,
+            error.error.message
+          ).to_string())
+        });
+      }
+    };
+
     let response: Vec<String> = response.choices
       .into_iter()
       .map(|choice| choice.message.content)
