@@ -9,6 +9,8 @@ use crate::cli::Exit;
 mod validation;
 mod openai;
 
+use openai::model;
+
 pub fn gpt(opts: &GptOptions) -> Result<(), Exit> {
   validation::validate(opts)?;
 
@@ -19,7 +21,10 @@ pub fn gpt(opts: &GptOptions) -> Result<(), Exit> {
   let gpt_prompt = if atty::is(atty::Stream::Stdin) {
     opts.prompt.join("")
   } else {
-    io::stdin().lines().map(|line| line.unwrap()).collect::<Vec<String>>().join("\n")
+    io::stdin().lines()
+      .map(|line| line.unwrap())
+      .collect::<Vec<String>>()
+      .join("\n")
   };
 
   validation::validate_prompt(opts, &gpt_prompt)?;
@@ -28,8 +33,12 @@ pub fn gpt(opts: &GptOptions) -> Result<(), Exit> {
 
 fn to_exit(error: openai::ApiError) -> Exit {
   match error.kind {
-    openai::ApiErrorType::Timeout => Exit { exit_code: 1, message: Some("Request timed out".to_string()) },
-    openai::ApiErrorType::Decode => Exit { exit_code: 1, message: Some("Bad response".to_string()) },
+    openai::ApiErrorType::Timeout => Exit {
+      exit_code: 1, message: Some("Request timed out".to_string())
+    },
+    openai::ApiErrorType::Decode => Exit {
+      exit_code: 1, message: Some("Bad response".to_string())
+    },
     openai::ApiErrorType::DryDebug => Exit { exit_code: 0, message: None },
     _ => Exit { exit_code: 1, message: Some("Request failed".to_string()) }
   }
@@ -54,7 +63,7 @@ pub fn models(opts: &GptOptions) -> Result<(), Exit> {
 }
 
 pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
-  let mut messages: Vec<openai::model::Message> = Vec::new();
+  let mut messages: Vec<model::Message> = Vec::new();
   let mut has_context = false;
 
   if let Some(context) = &opts.flags.context {
@@ -64,15 +73,33 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
       println!("==== Context will be stored in '{}' ====", context);
 
       if Path::new(context).exists() {
-        println!("Load existing context");
+        let data = std::fs::read_to_string(context)
+          .map_err(|_| Exit {
+            exit_code: 1,
+            message: Some("Failed to read context file".to_string())
+          })?;
+
+        messages = serde_json::from_str(&data)
+          .map_err(|_| Exit {
+            exit_code: 1,
+            message: Some("Failed to parse context file".to_string())
+          })?;
+
+        for message in &messages {
+          match message.role {
+            model::Role::System => println!("[System] {}", message.content),
+            model::Role::Assistant => println!("[Assistant] {}", message.content),
+            model::Role::User => println!("[User] {}", message.content)
+          }
+        }
         skip_create = true;
       }
     }
 
     if !skip_create && prompt != "" {
       println!("[System] {}", prompt);
-      messages.push(openai::model::Message {
-        role: openai::model::Role::System,
+      messages.push(model::Message {
+        role: model::Role::System,
         content: prompt.to_string()
       });
     }
@@ -89,18 +116,18 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
       if line == "" {
         break;
       }
-      messages.push(openai::model::Message {
-        role: openai::model::Role::User,
+      messages.push(model::Message {
+        role: model::Role::User,
         content: line
       });
     } else {
-      messages.push(openai::model::Message {
-        role: openai::model::Role::User,
+      messages.push(model::Message {
+        role: model::Role::User,
         content: prompt.to_string()
       });
     }
 
-    let request = openai::model::ChatCompletions {
+    let request = model::ChatCompletions {
       model: opts.flags.model.clone(),
       max_tokens: opts.flags.max_tokens,
       temperature: opts.flags.temperature,
@@ -117,8 +144,8 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
     let response = openai.chat_completions(&request).map_err(to_exit)?;
 
     let response = match response {
-      openai::model::ChatCompletionsResponse::Ok(response) => response,
-      openai::model::ChatCompletionsResponse::Error(error) => {
+      model::ChatCompletionsResponse::Ok(response) => response,
+      model::ChatCompletionsResponse::Error(error) => {
         return Err(Exit {
           exit_code: 1,
           message: Some(format!(
@@ -137,13 +164,17 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
 
     if let Some(context) = &opts.flags.context {
       println!("[Assistant] {}", response.join("\n"));
-      messages.push(openai::model::Message {
-        role: openai::model::Role::Assistant,
+      messages.push(model::Message {
+        role: model::Role::Assistant,
         content: response.join("\n")
       });
 
       if context != "-" {
-        println!("Stored context to file");
+        std::fs::write(context, serde_json::to_string(&messages).unwrap())
+          .map_err(|_| Exit {
+            exit_code: 1,
+            message: Some("Failed to write context file".to_string())
+          })?;
       }
     } else {
       println!("{}", response.join("\n"));
