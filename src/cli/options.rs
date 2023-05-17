@@ -15,13 +15,21 @@ pub struct GptOptions {
   pub helpers: Helpers,
 
   /// Prompt
-  #[arg(hide_long_help = true, trailing_var_arg = true)]
+  #[arg(hide_short_help = true, hide_long_help = true, trailing_var_arg = true)]
   pub prompt: Vec<String>,
 
-  #[arg(hide = true, long, conflicts_with = "debug_dry")]
+  /// Debug options
+  #[command(flatten)]
+  pub debug: DebugOptions,
+}
+
+#[derive(Args)]
+#[group(multiple = false)]
+pub struct DebugOptions {
+  #[arg(hide = true, long)]
   pub debug: bool,
 
-  #[arg(hide = true, long, conflicts_with = "debug")]
+  #[arg(hide = true, long)]
   pub debug_dry: bool,
 }
 
@@ -65,20 +73,21 @@ pub struct Flags {
 }
 
 #[derive(Args)]
+#[group(multiple = false)]
 pub struct Helpers {
   /// Produce only shell command output
-  #[arg(id = "command", visible_alias = "cmd", long = "command", conflicts_with_all = ["code", "url", "copilot"])]
+  #[arg(id = "command", visible_alias = "cmd", long = "command")]
   pub produce_command: bool,
 
   /// Produce only one-liner code
-  #[arg(id = "code", long = "code", conflicts_with_all = ["command", "url", "copilot"])]
+  #[arg(id = "code", long = "code")]
   pub produce_code: bool,
 
   /// Produce only URL for the given query
-  #[arg(id = "url", long = "url", conflicts_with_all = ["command", "code", "copilot"])]
+  #[arg(id = "url", long = "url")]
   pub produce_url: bool,
 
   /// Produce a copilot-like shell command with explanation
-  #[arg(hide = true, id = "copilot", long = "copilot", conflicts_with_all = ["command", "code", "url"])]
+  #[arg(hide = true, id = "copilot", long = "copilot")]
   pub produce_copilot: bool,
 }

@@ -40,8 +40,8 @@ pub fn models(opts: &GptOptions) -> Result<(), Exit> {
     opts.envs.api_host.to_string(),
     opts.envs.api_key.clone().unwrap().to_string(),
     opts.flags.timeout,
-    opts.debug || opts.debug_dry,
-    opts.debug_dry
+    opts.debug.debug || opts.debug.debug_dry,
+    opts.debug.debug_dry
   );
   let models = openai.models().map_err(to_exit)?;
 
@@ -111,8 +111,8 @@ pub fn prompt(opts: &GptOptions, prompt: &String) -> Result<(), Exit> {
       opts.envs.api_host.to_string(),
       opts.envs.api_key.clone().unwrap().to_string(),
       opts.flags.timeout,
-      opts.debug || opts.debug_dry,
-      opts.debug_dry
+      opts.debug.debug || opts.debug.debug_dry,
+      opts.debug.debug_dry
     );
     let response = openai.chat_completions(&request).map_err(to_exit)?;
 
